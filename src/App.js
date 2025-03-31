@@ -680,7 +680,10 @@ const App = () => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
         {remoteStream && (
           <div style={{ padding: '10px', border: '1px solid #ccc', borderRadius: '5px' }}>
-            <p><strong>Remote Audio:</strong></p>
+             <p><strong>Remote Audio:</strong> {callStatus === 'Connected' ? 
+    <span style={{ color: 'green' }}>Active - {remoteStream.getTracks().length} track(s)</span> : 
+    <span style={{ color: 'orange' }}>Connecting...</span>}
+  </p>
             <audio
               style={{ width: '100%' }}
               controls
@@ -693,11 +696,33 @@ const App = () => {
                   console.log('Remote audio element updated with stream');
                   
                   audio.play()
-                    .then(() => console.log('Remote audio playback started automatically'))
-                    .catch(err => {
-                      console.warn('Auto-play prevented:', err);
-                      setErrorMessage('Click the play button to hear audio');
-                    });
+  .then(() => console.log('Remote audio playback started automatically'))
+  .catch(err => {
+    console.log('Autoplay prevented (normal browser behavior):', err);
+    // Don't set as error, provide guidance instead
+    if (callStatus === 'Connected') {
+      // Create an overlay notification instead of an error
+      const audioContainer = audio.parentElement;
+      const notification = document.createElement('div');
+      notification.style.position = 'absolute';
+      notification.style.top = '40px';
+      notification.style.left = '50%';
+      notification.style.transform = 'translateX(-50%)';
+      notification.style.backgroundColor = 'rgba(0,0,0,0.7)';
+      notification.style.color = 'white';
+      notification.style.padding = '8px 12px';
+      notification.style.borderRadius = '4px';
+      notification.style.fontSize = '14px';
+      notification.textContent = '👆 Click play to hear audio';
+      notification.style.pointerEvents = 'none';
+      
+      if (audioContainer) {
+        audioContainer.style.position = 'relative';
+        audioContainer.appendChild(notification);
+        setTimeout(() => notification.remove(), 5000);
+      }
+    }
+  });
                 }
               }}
             />
