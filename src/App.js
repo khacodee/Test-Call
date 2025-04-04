@@ -13,6 +13,8 @@ const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null); // State for incoming call
   const iceCandidateQueue = useRef([]);
+  const [isMicOn, setIsMicOn] = useState(true);
+const [isVideoOn, setIsVideoOn] = useState(true);
   useEffect(() => {
     if (isLoggedIn) {
       // Thiết lập kết nối SignalR khi đã đăng nhập
@@ -217,7 +219,27 @@ const acceptCall = async () => {
     console.log("Call rejected from:", incomingCall);
     setIncomingCall(null);
   };
+const toggleMic = () => {
+  if (localVideoRef.current && localVideoRef.current.srcObject) {
+    const audioTracks = localVideoRef.current.srcObject.getAudioTracks();
+    if (audioTracks.length > 0) {
+      const isEnabled = audioTracks[0].enabled;
+      audioTracks[0].enabled = !isEnabled;
+      setIsMicOn(!isEnabled);
+    }
+  }
+};
 
+const toggleVideo = () => {
+  if (localVideoRef.current && localVideoRef.current.srcObject) {
+    const videoTracks = localVideoRef.current.srcObject.getVideoTracks();
+    if (videoTracks.length > 0) {
+      const isEnabled = videoTracks[0].enabled;
+      videoTracks[0].enabled = !isEnabled;
+      setIsVideoOn(!isEnabled);
+    }
+  }
+};
   return (
     <div>
       {!isLoggedIn ? (
@@ -233,22 +255,24 @@ const acceptCall = async () => {
         </div>
       ) : (
         <div>
-          <h1>Video Call</h1>
-          <video ref={localVideoRef} autoPlay playsInline muted style={{ width: "300px" }} />
-          <video ref={remoteVideoRef} autoPlay playsInline style={{ width: "300px" }} />
-          <input type="text" placeholder="Target User ID" onChange={(e) => setTargetUserId(e.target.value)} />
-          <button onClick={startCall}>Gọi</button>
-          <button onClick={endCall}>Kết thúc</button>
+  <h1>Video Call</h1>
+  <video ref={localVideoRef} autoPlay playsInline muted style={{ width: "300px" }} />
+  <video ref={remoteVideoRef} autoPlay playsInline style={{ width: "300px" }} />
+  <input type="text" placeholder="Target User ID" onChange={(e) => setTargetUserId(e.target.value)} />
+  <button onClick={startCall}>Gọi</button>
+  <button onClick={endCall}>Kết thúc</button>
+  <button onClick={toggleMic}>{isMicOn ? "Tắt mic" : "Bật mic"}</button>
+  <button onClick={toggleVideo}>{isVideoOn ? "Tắt video" : "Bật video"}</button>
 
-          {/* Incoming Call UI */}
-          {incomingCall && (
-            <div>
-              <p>Incoming call from: {incomingCall.callerUserId}</p>
-              <button onClick={acceptCall}>Accept</button>
-              <button onClick={rejectCall}>Reject</button>
-            </div>
-          )}
-        </div>
+  {/* Incoming Call UI */}
+  {incomingCall && (
+    <div>
+      <p>Incoming call from: {incomingCall.callerUserId}</p>
+      <button onClick={acceptCall}>Accept</button>
+      <button onClick={rejectCall}>Reject</button>
+    </div>
+  )}
+</div>
       )}
     </div>
   );
