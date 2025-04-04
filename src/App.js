@@ -48,15 +48,16 @@ const App = () => {
 
 newConnection.on("ReceiveIceCandidate", (candidate) => {
   try {
+    console.log("Nhận ICE candidate:", candidate);
     const iceCandidate = new RTCIceCandidate(JSON.parse(candidate));
     if (peer.current && peer.current.remoteDescription) {
       peer.current.addIceCandidate(iceCandidate);
     } else {
-      console.warn("Remote description not set. Queuing ICE candidate.");
+      console.warn("Remote description chưa được thiết lập. Đưa ICE candidate vào hàng đợi.");
       iceCandidateQueue.current.push(iceCandidate);
     }
   } catch (error) {
-    console.error("Error adding ICE candidate:", error);
+    console.error("Lỗi khi thêm ICE candidate:", error);
   }
 });
 
@@ -73,7 +74,16 @@ newConnection.on("ReceiveIceCandidate", (candidate) => {
       return () => newConnection.stop();
     }
   }, [isLoggedIn, userId]);
-
+const checkUserExists = async (userId) => {
+  try {
+    const userExists = await connection.invoke("CheckUserExists", userId);
+    console.log(`User ${userId} exists: ${userExists}`);
+    return userExists;
+  } catch (error) {
+    console.error("Error checking user existence:", error);
+    return false;
+  }
+};
   const setupWebRTC = async () => {
   try {
     peer.current = new RTCPeerConnection({
@@ -84,13 +94,21 @@ newConnection.on("ReceiveIceCandidate", (candidate) => {
         }]
       });
 
-    peer.current.onicecandidate = event => {
+    peer.current.onicecandidate = async (event) => {
   if (event.candidate && targetUserId) {
-    console.log("Sending ICE candidate to:", targetUserId);
+    console.log("Generated ICE candidate:", event.candidate);
+
+    const userExists = await checkUserExists(targetUserId);
+    if (!userExists) {
+      console.warn(`Không thể gửi ICE candidate. User ${targetUserId} không kết nối.`);
+      return;
+    }
+
+    console.log("Gửi ICE candidate đến:", targetUserId);
     connection.invoke("SendIceCandidate", targetUserId, JSON.stringify(event.candidate))
-      .catch(err => console.error("Error sending ICE candidate:", err));
+      .catch(err => console.error("Lỗi khi gửi ICE candidate:", err));
   } else {
-    console.warn("ICE candidate not sent: targetUserId is not set.");
+    console.warn("ICE candidate không được gửi: targetUserId chưa được thiết lập.");
   }
 };
 
@@ -110,11 +128,25 @@ newConnection.on("ReceiveIceCandidate", (candidate) => {
 
   const startCall = async () => {
   try {
-    setTargetUserId(targetUserId); // Ensure targetUserId is set
+    if (!targetUserId) {
+      alert("Please enter a valid Target User ID.");
+      return;
+    }
+
+    
+    const userExists = await checkUserExists(targetUserId);
+    if (!userExists) {
+      alert(`User ${targetUserId} is not connected.`);
+      return;
+    }
+
     await setupWebRTC();
     const offer = await peer.current.createOffer();
     await peer.current.setLocalDescription(offer);
-    connection.invoke("SendOffer", targetUserId, JSON.stringify(offer));
+
+    // Send the offer to the target user
+    connection.invoke("SendOffer", targetUserId, JSON.stringify(offer))
+      .catch(err => console.error("Error sending offer:", err));
   } catch (error) {
     console.error("Error starting call:", error);
     alert("Failed to start the call. Please try again.");
@@ -135,35 +167,35 @@ newConnection.on("ReceiveIceCandidate", (candidate) => {
   };
 const acceptCall = async () => {
   try {
-    console.log("Call accepted from:", incomingCall);
+    console.log("Chấp nhận cuộc gọi từ:", incomingCall);
 
-    // Set the targetUserId to the caller's ID
+    // Thiết lập targetUserId
     setTargetUserId(incomingCall.callerUserId);
 
-    // Set up WebRTC connection
+    // Thiết lập kết nối WebRTC
     await setupWebRTC();
 
-    // Set the remote description with the offer received from the caller
+    // Thiết lập remote description với offer nhận được
     await peer.current.setRemoteDescription(new RTCSessionDescription(JSON.parse(incomingCall.offer)));
 
-    // Process queued ICE candidates
+    // Xử lý các ICE candidate trong hàng đợi
     while (iceCandidateQueue.current.length > 0) {
       const candidate = iceCandidateQueue.current.shift();
       await peer.current.addIceCandidate(candidate);
     }
 
-    // Create an answer and set it as the local description
+    // Tạo answer và thiết lập local description
     const answer = await peer.current.createAnswer();
     await peer.current.setLocalDescription(answer);
 
-    // Send the answer back to the caller
+    // Gửi answer lại cho người gọi
     connection.invoke("SendAnswer", incomingCall.callerUserId, JSON.stringify(answer));
 
-    // Clear the incoming call notification
+    // Xóa thông báo cuộc gọi đến
     setIncomingCall(null);
   } catch (error) {
-    console.error("Error accepting call:", error);
-    alert("Failed to accept the call. Please try again.");
+    console.error("Lỗi khi chấp nhận cuộc gọi:", error);
+    alert("Không thể chấp nhận cuộc gọi. Vui lòng thử lại.");
   }
 };
 
