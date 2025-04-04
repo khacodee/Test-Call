@@ -31,6 +31,9 @@ const App = () => {
     // Set the incoming call state
     setIncomingCall({ callerUserId, offer });
 
+    // Thiết lập targetUserId từ callerUserId
+    setTargetUserId(callerUserId);
+
     // Prepare WebRTC connection immediately
     if (!peer.current) {
       await setupWebRTC();
@@ -39,6 +42,7 @@ const App = () => {
     console.error("Error handling incoming offer:", error);
   }
 });
+
 
       newConnection.on("ReceiveAnswer", async (answer) => {
         await peer.current.setRemoteDescription(new RTCSessionDescription(JSON.parse(answer)));
@@ -94,7 +98,7 @@ const checkUserExists = async (userId) => {
         }]
       });
 
-    peer.current.onicecandidate = async (event) => {
+   peer.current.onicecandidate = async (event) => {
   if (event.candidate && targetUserId) {
     console.log("Generated ICE candidate:", event.candidate);
 
@@ -112,6 +116,7 @@ const checkUserExists = async (userId) => {
   }
 };
 
+
     peer.current.ontrack = event => {
       remoteVideoRef.current.srcObject = event.streams[0];
     };
@@ -126,30 +131,30 @@ const checkUserExists = async (userId) => {
   }
 };
 
-  const startCall = async () => {
+const startCall = async () => {
   try {
     if (!targetUserId) {
-      alert("Please enter a valid Target User ID.");
+      alert("Vui lòng nhập ID người dùng mục tiêu.");
       return;
     }
-
-    
-    const userExists = await checkUserExists(targetUserId);
+      const userExists = await checkUserExists(targetUserId);
     if (!userExists) {
-      alert(`User ${targetUserId} is not connected.`);
+      alert(`Người dùng với ID ${targetUserId} không tồn tại hoặc không trực tuyến.`);
       return;
     }
-
+    // Thiết lập kết nối WebRTC
     await setupWebRTC();
+
+    // Tạo offer và thiết lập local description
     const offer = await peer.current.createOffer();
     await peer.current.setLocalDescription(offer);
 
-    // Send the offer to the target user
+    // Gửi offer đến người dùng mục tiêu
     connection.invoke("SendOffer", targetUserId, JSON.stringify(offer))
-      .catch(err => console.error("Error sending offer:", err));
+      .catch(err => console.error("Lỗi khi gửi offer:", err));
   } catch (error) {
-    console.error("Error starting call:", error);
-    alert("Failed to start the call. Please try again.");
+    console.error("Lỗi khi bắt đầu cuộc gọi:", error);
+    alert("Không thể bắt đầu cuộc gọi. Vui lòng thử lại.");
   }
 };
 
