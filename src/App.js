@@ -76,7 +76,13 @@ newConnection.on("ReceiveIceCandidate", (candidate) => {
 
   const setupWebRTC = async () => {
   try {
-    peer.current = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+    peer.current = new RTCPeerConnection({
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }, {
+          urls: "turn:openrelay.metered.ca:80",
+          username: "openrelayproject",
+          credential: "openrelayproject"
+        }]
+      });
 
     peer.current.onicecandidate = event => {
       if (event.candidate) {
