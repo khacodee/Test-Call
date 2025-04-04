@@ -85,10 +85,14 @@ newConnection.on("ReceiveIceCandidate", (candidate) => {
       });
 
     peer.current.onicecandidate = event => {
-      if (event.candidate) {
-        connection.invoke("SendIceCandidate", targetUserId, JSON.stringify(event.candidate));
-      }
-    };
+  if (event.candidate && targetUserId) {
+    console.log("Sending ICE candidate to:", targetUserId);
+    connection.invoke("SendIceCandidate", targetUserId, JSON.stringify(event.candidate))
+      .catch(err => console.error("Error sending ICE candidate:", err));
+  } else {
+    console.warn("ICE candidate not sent: targetUserId is not set.");
+  }
+};
 
     peer.current.ontrack = event => {
       remoteVideoRef.current.srcObject = event.streams[0];
@@ -105,11 +109,17 @@ newConnection.on("ReceiveIceCandidate", (candidate) => {
 };
 
   const startCall = async () => {
+  try {
+    setTargetUserId(targetUserId); // Ensure targetUserId is set
     await setupWebRTC();
     const offer = await peer.current.createOffer();
     await peer.current.setLocalDescription(offer);
     connection.invoke("SendOffer", targetUserId, JSON.stringify(offer));
-  };
+  } catch (error) {
+    console.error("Error starting call:", error);
+    alert("Failed to start the call. Please try again.");
+  }
+};
 
   const endCall = () => {
     if (peer.current) {
