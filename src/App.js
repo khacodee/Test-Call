@@ -12,7 +12,7 @@ const App = () => {
   const [userId, setUserId] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null); // State for incoming call
-
+  const iceCandidateQueue = useRef([]);
   useEffect(() => {
     if (isLoggedIn) {
       // Thiết lập kết nối SignalR khi đã đăng nhập
@@ -25,20 +25,40 @@ const App = () => {
 
       // Xử lý sự kiện nhận tín hiệu từ server
       newConnection.on("ReceiveOffer", async (offer, callerUserId) => {
-        setTargetUserId(callerUserId);
-        await peer.current.setRemoteDescription(new RTCSessionDescription(JSON.parse(offer)));
-        const answer = await peer.current.createAnswer();
-        await peer.current.setLocalDescription(answer);
-        newConnection.invoke("SendAnswer", callerUserId, JSON.stringify(answer));
-      });
+  try {
+    console.log("Received offer from:", callerUserId);
+
+    // Set the incoming call state
+    setIncomingCall({ callerUserId, offer });
+
+    // Prepare WebRTC connection immediately
+    if (!peer.current) {
+      await setupWebRTC();
+    }
+  } catch (error) {
+    console.error("Error handling incoming offer:", error);
+  }
+});
 
       newConnection.on("ReceiveAnswer", async (answer) => {
         await peer.current.setRemoteDescription(new RTCSessionDescription(JSON.parse(answer)));
       });
 
-      newConnection.on("ReceiveIceCandidate", (candidate) => {
-        peer.current.addIceCandidate(new RTCIceCandidate(JSON.parse(candidate)));
-      });
+      
+
+newConnection.on("ReceiveIceCandidate", (candidate) => {
+  try {
+    const iceCandidate = new RTCIceCandidate(JSON.parse(candidate));
+    if (peer.current && peer.current.remoteDescription) {
+      peer.current.addIceCandidate(iceCandidate);
+    } else {
+      console.warn("Remote description not set. Queuing ICE candidate.");
+      iceCandidateQueue.current.push(iceCandidate);
+    }
+  } catch (error) {
+    console.error("Error adding ICE candidate:", error);
+  }
+});
 
       newConnection.on("CallEnded", () => {
         endCall();
@@ -97,12 +117,40 @@ const App = () => {
   const handleLogin = () => {
     setIsLoggedIn(true);
   };
-
-  const acceptCall = () => {
-    // Logic to accept the call
+const acceptCall = async () => {
+  try {
     console.log("Call accepted from:", incomingCall);
+
+    // Set the targetUserId to the caller's ID
+    setTargetUserId(incomingCall.callerUserId);
+
+    // Set up WebRTC connection
+    await setupWebRTC();
+
+    // Set the remote description with the offer received from the caller
+    await peer.current.setRemoteDescription(new RTCSessionDescription(JSON.parse(incomingCall.offer)));
+
+    // Process queued ICE candidates
+    while (iceCandidateQueue.current.length > 0) {
+      const candidate = iceCandidateQueue.current.shift();
+      await peer.current.addIceCandidate(candidate);
+    }
+
+    // Create an answer and set it as the local description
+    const answer = await peer.current.createAnswer();
+    await peer.current.setLocalDescription(answer);
+
+    // Send the answer back to the caller
+    connection.invoke("SendAnswer", incomingCall.callerUserId, JSON.stringify(answer));
+
+    // Clear the incoming call notification
     setIncomingCall(null);
-  };
+  } catch (error) {
+    console.error("Error accepting call:", error);
+    alert("Failed to accept the call. Please try again.");
+  }
+};
+
 
   const rejectCall = () => {
     // Logic to reject the call
@@ -135,7 +183,7 @@ const App = () => {
           {/* Incoming Call UI */}
           {incomingCall && (
             <div>
-              <p>Incoming call from: {incomingCall}</p>
+              <p>Incoming call from: {incomingCall.callerUserId}</p>
               <button onClick={acceptCall}>Accept</button>
               <button onClick={rejectCall}>Reject</button>
             </div>
