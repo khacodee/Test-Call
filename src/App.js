@@ -1,5 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as signalR from "@microsoft/signalr";
+import { AppBar, Toolbar, Typography, Button, TextField, Card, CardContent, Grid } from "@mui/material";
+import MicIcon from "@mui/icons-material/Mic";
+import MicOffIcon from "@mui/icons-material/MicOff";
+import VideocamIcon from "@mui/icons-material/Videocam";
+import VideocamOffIcon from "@mui/icons-material/VideocamOff";
 
 const SERVER_URL = "https://tellory.id.vn/callhub";
 
@@ -220,59 +225,106 @@ const acceptCall = async () => {
     setIncomingCall(null);
   };
 const toggleMic = () => {
-  if (localVideoRef.current && localVideoRef.current.srcObject) {
-    const audioTracks = localVideoRef.current.srcObject.getAudioTracks();
-    if (audioTracks.length > 0) {
-      const isEnabled = audioTracks[0].enabled;
-      audioTracks[0].enabled = !isEnabled;
-      setIsMicOn(!isEnabled);
+    if (localVideoRef.current && localVideoRef.current.srcObject) {
+      const audioTracks = localVideoRef.current.srcObject.getAudioTracks();
+      if (audioTracks.length > 0) {
+        const isEnabled = audioTracks[0].enabled;
+        audioTracks[0].enabled = !isEnabled;
+        setIsMicOn(!isEnabled);
+      }
     }
-  }
-};
+  };
 
-const toggleVideo = () => {
-  if (localVideoRef.current && localVideoRef.current.srcObject) {
-    const videoTracks = localVideoRef.current.srcObject.getVideoTracks();
-    if (videoTracks.length > 0) {
-      const isEnabled = videoTracks[0].enabled;
-      videoTracks[0].enabled = !isEnabled;
-      setIsVideoOn(!isEnabled);
+  const toggleVideo = () => {
+    if (localVideoRef.current && localVideoRef.current.srcObject) {
+      const videoTracks = localVideoRef.current.srcObject.getVideoTracks();
+      if (videoTracks.length > 0) {
+        const isEnabled = videoTracks[0].enabled;
+        videoTracks[0].enabled = !isEnabled;
+        setIsVideoOn(!isEnabled);
+      }
     }
-  }
-};
+  };
+
   return (
     <div>
-      {!isLoggedIn ? (
-        <div>
-          <h2>Login</h2>
-          <input
-            type="text"
-            placeholder="Enter User ID"
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-          />
-          <button onClick={handleLogin}>Login</button>
-        </div>
-      ) : (
-        <div>
-  <h1>Video Call</h1>
-  <video ref={localVideoRef} autoPlay playsInline muted style={{ width: "300px" }} />
-  <video ref={remoteVideoRef} autoPlay playsInline style={{ width: "300px" }} />
-  <input type="text" placeholder="Target User ID" onChange={(e) => setTargetUserId(e.target.value)} />
-  <button onClick={startCall}>Gọi</button>
-  <button onClick={endCall}>Kết thúc</button>
-  <button onClick={toggleMic}>{isMicOn ? "Tắt mic" : "Bật mic"}</button>
-  <button onClick={toggleVideo}>{isVideoOn ? "Tắt video" : "Bật video"}</button>
+      <AppBar position="static">
+        <Toolbar>
+          <Typography variant="h6" style={{ flexGrow: 1 }}>
+            Zalo-like Video Call App
+          </Typography>
+          {isLoggedIn && (
+            <Button color="inherit" onClick={() => setIsLoggedIn(false)}>
+              Đăng xuất
+            </Button>
+          )}
+        </Toolbar>
+      </AppBar>
 
-  {/* Incoming Call UI */}
-  {incomingCall && (
-    <div>
-      <p>Incoming call from: {incomingCall.callerUserId}</p>
-      <button onClick={acceptCall}>Accept</button>
-      <button onClick={rejectCall}>Reject</button>
-    </div>
-  )}
-</div>
+      {!isLoggedIn ? (
+        <Grid container justifyContent="center" alignItems="center" style={{ height: "100vh" }}>
+          <Card style={{ padding: "20px", width: "400px" }}>
+            <CardContent>
+              <Typography variant="h5" gutterBottom>
+                Đăng nhập
+              </Typography>
+              <TextField
+                fullWidth
+                label="Nhập User ID"
+                variant="outlined"
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                style={{ marginBottom: "20px" }}
+              />
+              <Button variant="contained" color="primary" fullWidth onClick={() => setIsLoggedIn(true)}>
+                Đăng nhập
+              </Button>
+            </CardContent>
+          </Card>
+        </Grid>
+      ) : (
+        <Grid container spacing={2} style={{ padding: "20px" }}>
+          <Grid item xs={12} md={6}>
+            <video ref={localVideoRef} autoPlay playsInline muted style={{ width: "100%", borderRadius: "10px" }} />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <video ref={remoteVideoRef} autoPlay playsInline style={{ width: "100%", borderRadius: "10px" }} />
+          </Grid>
+          <Grid item xs={12}>
+  <TextField
+    fullWidth
+    label="Nhập ID người dùng mục tiêu"
+    variant="outlined"
+    onChange={(e) => setTargetUserId(e.target.value)}
+    style={{ marginBottom: "10px" }}
+  />
+  <Button variant="contained" color="primary" onClick={startCall} style={{ marginRight: "10px" }}>
+    Gọi
+  </Button>
+  <Button variant="contained" color="secondary" onClick={endCall} style={{ marginRight: "10px" }}>
+    Kết thúc
+  </Button>
+  <Button variant="outlined" color="primary" onClick={toggleMic} style={{ marginRight: "10px" }}>
+    {isMicOn ? <MicIcon /> : <MicOffIcon />}
+  </Button>
+  <Button variant="outlined" color="primary" onClick={toggleVideo}>
+    {isVideoOn ? <VideocamIcon /> : <VideocamOffIcon />}
+  </Button>
+</Grid>
+          {incomingCall && (
+            <Grid item xs={12}>
+              <Card style={{ padding: "20px", marginTop: "20px" }}>
+                <Typography variant="h6">Cuộc gọi đến từ: {incomingCall.callerUserId}</Typography>
+                <Button variant="contained" color="primary" onClick={acceptCall} style={{ marginRight: "10px" }}>
+                  Chấp nhận
+                </Button>
+                <Button variant="contained" color="secondary" onClick={rejectCall}>
+                  Từ chối
+                </Button>
+              </Card>
+            </Grid>
+          )}
+        </Grid>
       )}
     </div>
   );
