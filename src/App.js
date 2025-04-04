@@ -22,7 +22,10 @@ const App = () => {
         .build();
 
       newConnection.start().catch(err => console.error("SignalR Connection Error: ", err));
-
+      newConnection.on("CallEnded", (callerUserId) => {
+      console.log(`Call ended by user: ${callerUserId}`);
+      endCall(); // Kết thúc cuộc gọi ở phía client
+    });
       // Xử lý sự kiện nhận tín hiệu từ server
       newConnection.on("ReceiveOffer", async (offer, callerUserId) => {
   try {
@@ -165,6 +168,10 @@ const startCall = async () => {
     }
     localVideoRef.current.srcObject = null;
     remoteVideoRef.current.srcObject = null;
+    if (connection && targetUserId) {
+    connection.invoke("EndCall", targetUserId)
+      .catch(err => console.error("Lỗi khi gửi thông báo kết thúc cuộc gọi:", err));
+  }
   };
 
   const handleLogin = () => {
