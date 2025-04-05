@@ -101,11 +101,14 @@ const checkUserExists = async (userId) => {
   const setupWebRTC = async () => {
   try {
     peer.current = new RTCPeerConnection({
-        iceServers: [{ urls: "stun:stun.l.google.com:19302" }, {
-          urls: "turn:openrelay.metered.ca:80",
-          username: "openrelayproject",
-          credential: "openrelayproject"
-        }]
+        iceServers: [
+          { urls: "stun:stun.l.google.com:19302" },
+          {
+            urls: "turn:tellory.id.vn:3478",
+            username: "sep2025",
+            credential: "sep2025",
+          },
+        ],
       });
 
    peer.current.onicecandidate = async (event) => {
