@@ -109,6 +109,10 @@ const checkUserExists = async (userId) => {
             credential: "sep2025",
           },
         ],
+        iceTransportPolicy: "all",
+  bundlePolicy: "max-bundle",
+  rtcpMuxPolicy: "require",
+  iceCandidatePoolSize: 0,
       });
 
    peer.current.onicecandidate = async (event) => {
@@ -132,6 +136,7 @@ const checkUserExists = async (userId) => {
 
     peer.current.ontrack = event => {
       remoteVideoRef.current.srcObject = event.streams[0];
+     console.log("Remote track received:", event.streams[0]);
     };
 
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
