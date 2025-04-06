@@ -102,7 +102,8 @@ const checkUserExists = async (userId) => {
   try {
     peer.current = new RTCPeerConnection({
         iceServers: [
-          //{ urls: "stun:stun.l.google.com:19302" },
+          { urls: "stun:stun.l.google.com:19302" },
+          //{ urls: "stun:tellory.id.vn:3478" },
           {
             urls: "turn:tellory.id.vn:3478",
             username: "sep2025",
@@ -133,6 +134,9 @@ const checkUserExists = async (userId) => {
   }
 };
 
+  peer.current.oniceconnectionstatechange = () => {
+  console.log("ICE connection state:", peer.current.iceConnectionState);
+};
 
     peer.current.ontrack = event => {
       remoteVideoRef.current.srcObject = event.streams[0];
