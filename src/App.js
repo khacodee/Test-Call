@@ -102,7 +102,7 @@ const checkUserExists = async (userId) => {
   try {
     peer.current = new RTCPeerConnection({
         iceServers: [
-          { urls: "stun:stun.l.google.com:19302" },
+          //{ urls: "stun:stun.l.google.com:19302" },
           {
             urls: "turn:tellory.id.vn:3478",
             username: "sep2025",
