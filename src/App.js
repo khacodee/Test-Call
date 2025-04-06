@@ -105,7 +105,15 @@ const checkUserExists = async (userId) => {
           { urls: "stun:stun.l.google.com:19302" },
           //{ urls: "stun:tellory.id.vn:3478" },
           {
-            urls: "turn:tellory.id.vn:3478",
+      urls: "turn:openrelay.metered.ca:80",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+          {
+            urls: [
+    "turn:tellory.id.vn:3478?transport=udp",
+    "turn:tellory.id.vn:3478?transport=tcp"
+  ],
             username: "sep2025",
             credential: "sep2025",
           },
